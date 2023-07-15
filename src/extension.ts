@@ -196,6 +196,16 @@ function quickFixJsonSerializable(
   const filePaths = document.fileName.split("\\");
   const fileName = filePaths.at(-1);
 
+  let textBeforeClass = "";
+
+  if (range.start.line > 0) {
+    const currentPosition = range.start;
+    const lineNumber = currentPosition.line;
+    const fullText = document.getText();
+    const lines = fullText.split("\n");
+    textBeforeClass = lines.slice(0, lineNumber).join("\n").trim();
+  }
+
   if (classRegex && fileName) {
     const className = classRegex[1];
 
@@ -218,13 +228,13 @@ function quickFixJsonSerializable(
 
     // Generate the class declaration and constructor snippet
     // prettier-ignore
-    const classSnippet = `
+    const classSnippet = `\
+${textBeforeClass}${textBeforeClass.length === 0 ? "" : "\n"}\
 import 'package:json_annotation/json_annotation.dart';
 part '${fileName}.g.dart';
 	
 class ${className} {
-  ${variableSection}
-  
+  ${variableSection}${variableSection.length === 0 ? "" : "\n"}
   ${className}(${constructorVariableSection.length === 0 ? "" : "{"}${constructorVariableSection}${constructorVariableSection.length === 0 ? "" : "\n\t"}${constructorVariableSection.length === 0 ? "" : "}"});
 
   factory ${className}.fromJson(Map<String, dynamic> json) => _${className}FromJson(json);
