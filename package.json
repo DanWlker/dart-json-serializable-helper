@@ -2,7 +2,7 @@
   "name": "dart-json-serializable-helper",
   "displayName": "Dart Json Serializable Helper",
   "description": "Helps with generating json serializable classes",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "dan-wlker",
   "icon": "media/flutter.png",
   "repository": {
