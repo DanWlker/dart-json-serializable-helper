@@ -19,8 +19,18 @@
   "contributes": {
     "commands": [
       {
-        "command": "dart-json-serializable-helper.helloWorld",
-        "title": "Hello World"
+        "command": "dartJsonSerializableHelper.genModel",
+        "title": "Dart Json Serializable Helper: Code gen for @JSONSerializable Classes"
+      },
+      {
+        "command": "dartJsonSerializableHelper.genModelWatch",
+        "title": "Dart Json Serializable Helper: Toggle Watch mode code gen for @JSONSerializable Classes"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "dart",
+        "path": "./json_serializable_templates.json"
       }
     ]
   },
@@ -44,5 +54,8 @@
     "mocha": "^10.2.0",
     "typescript": "^5.1.3",
     "@vscode/test-electron": "^2.3.2"
+  },
+  "dependencies": {
+    "tree-kill": "^1.2.1"
   }
 }

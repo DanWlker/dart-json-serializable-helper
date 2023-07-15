@@ -1,0 +1,19 @@
+{
+  "Generate a @JSONSerializable Class Template": {
+    "prefix": "jsi",
+    "body": [
+      "import 'package:json_annotation/json_annotation.dart';",
+      "",
+      "part '$TM_FILENAME_BASE.g.dart';",
+      "",
+      "@JsonSerializable()",
+      "class $1 {",
+      "",
+      "\t$1();",
+      "",
+      "\tfactory $1.fromJson(Map<String, dynamic> json) => _$$1FromJson(json);",
+      "\tMap<String, dynamic> toJson() => _$$1ToJson(this);",
+      "}"
+    ]
+  }
+}
