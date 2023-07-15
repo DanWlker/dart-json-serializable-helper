@@ -220,7 +220,7 @@ function quickFixJsonSerializable(
       const variableLate = variable.at(-4)?.trim() ?? "";
 
       // prettier-ignore
-      variableSection += `\n\t${variableLate ? variableLate + " " : ""}${variableConstFinal ? variableConstFinal + " " : ""}${variableType ? variableType + " " : ""}${variableName};`;
+      variableSection += `\t${variableLate ? variableLate + " " : ""}${variableConstFinal ? variableConstFinal + " " : ""}${variableType ? variableType + " " : ""}${variableName};\n`;
 
       // prettier-ignore
       constructorVariableSection += `\n\t\t${variableType.includes("?") ? "" : "required "}this.${variableName},`;
@@ -232,13 +232,14 @@ function quickFixJsonSerializable(
 ${textBeforeClass}${textBeforeClass.length === 0 ? "" : "\n"}\
 import 'package:json_annotation/json_annotation.dart';
 part '${fileName}.g.dart';
-	
-class ${className} {
-  ${variableSection}${variableSection.length === 0 ? "" : "\n"}
-  ${className}(${constructorVariableSection.length === 0 ? "" : "{"}${constructorVariableSection}${constructorVariableSection.length === 0 ? "" : "\n\t"}${constructorVariableSection.length === 0 ? "" : "}"});
 
-  factory ${className}.fromJson(Map<String, dynamic> json) => _${className}FromJson(json);
-  Map<String, dynamic> toJson() => _$${className}ToJson(this);
+@JsonSerializable()
+class ${className} {${variableSection.length === 0 ? "" : "\n"}${variableSection}
+\t${className}(${constructorVariableSection.length === 0 ? "" : "{"}${constructorVariableSection}${constructorVariableSection.length === 0 ? "" : "\n\t"}${constructorVariableSection.length === 0 ? "" : "}"});
+
+\tfactory ${className}.fromJson(Map<String, dynamic> json) => 
+\t\t\t_${className}FromJson(json);
+\tMap<String, dynamic> toJson() => _$${className}ToJson(this);
 }
 	`;
 
