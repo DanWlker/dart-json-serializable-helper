@@ -204,31 +204,32 @@ function quickFixJsonSerializable(
     let variableSection = "";
     let constructorVariableSection = "";
     for (const variable of variablesAvailable) {
-      const variableType = variable.at(-1) ?? "";
-      const variableName = variable.at(-2) ?? "";
-      const variableConstFinal = variable.at(-3) ?? "";
-      const variableLate = variable.at(-4) ?? "";
+      const variableName = variable.at(-1)?.trim() ?? "";
+      const variableType = variable.at(-2)?.trim() ?? "";
+      const variableConstFinal = variable.at(-3)?.trim() ?? "";
+      const variableLate = variable.at(-4)?.trim() ?? "";
 
-      variableSection += `${variableLate} ${variableConstFinal} ${variableType} ${variableName};\n`;
-      constructorVariableSection = `\
-	  ${variableType.includes("?") ? "" : "required"} this.${variableName},\n`;
+      // prettier-ignore
+      variableSection += `\n\t${variableLate ? variableLate + " " : ""}${variableConstFinal ? variableConstFinal + " " : ""}${variableType ? variableType + " " : ""}${variableName};`;
+
+      // prettier-ignore
+      constructorVariableSection += `\n\t\t${variableType.includes("?") ? "" : "required "}this.${variableName},`;
     }
 
     // Generate the class declaration and constructor snippet
+    // prettier-ignore
     const classSnippet = `
-	import 'package:json_annotation/json_annotation.dart';
-	part '${fileName}.g.dart';
+import 'package:json_annotation/json_annotation.dart';
+part '${fileName}.g.dart';
 	
-	class ${className} {
-		${variableSection}
-		
-		${className}(
-			${constructorVariableSection}
-		);
+class ${className} {
+  ${variableSection}
+  
+  ${className}(${constructorVariableSection.length === 0 ? "" : "{"}${constructorVariableSection}${constructorVariableSection.length === 0 ? "" : "\n\t"}${constructorVariableSection.length === 0 ? "" : "}"});
 
-		factory ${className}.fromJson(Map<String, dynamic> json) => _${className}FromJson(json);
-		Map<String, dynamic> toJson() => _$${className}ToJson(this);
-	}
+  factory ${className}.fromJson(Map<String, dynamic> json) => _${className}FromJson(json);
+  Map<String, dynamic> toJson() => _$${className}ToJson(this);
+}
 	`;
 
     // Create a new TextEdit to replace the entire document content
@@ -238,7 +239,7 @@ function quickFixJsonSerializable(
 
 function getVariableMatchesFromClass(text: string) {
   // Regular expression to match class variables
-  const regex = /(late\s)?(?:final\s+|const\s+)?([\w\d_]+)\s+([\w\d_]+);/gm;
+  const regex = /(late\s+)?(final\s+|const\s+)?([\w\d_?]+)\s+([\w\d_]+);/gm;
 
   // Match all class variables
   const matches = text.matchAll(regex);
