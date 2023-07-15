@@ -199,13 +199,32 @@ function quickFixJsonSerializable(
   if (classRegex && fileName) {
     const className = classRegex[1];
 
+    const variablesAvailable = getVariableMatchesFromClass(document.getText());
+
+    let variableSection = "";
+    let constructorVariableSection = "";
+    for (const variable of variablesAvailable) {
+      const variableType = variable.at(-1) ?? "";
+      const variableName = variable.at(-2) ?? "";
+      const variableConstFinal = variable.at(-3) ?? "";
+      const variableLate = variable.at(-4) ?? "";
+
+      variableSection += `${variableLate} ${variableConstFinal} ${variableType} ${variableName};\n`;
+      constructorVariableSection = `\
+	  ${variableType.includes("?") ? "" : "required"} this.${variableName},\n`;
+    }
+
     // Generate the class declaration and constructor snippet
     const classSnippet = `
 	import 'package:json_annotation/json_annotation.dart';
 	part '${fileName}.g.dart';
 	
 	class ${className} {
-		${className}();
+		${variableSection}
+		
+		${className}(
+			${constructorVariableSection}
+		);
 
 		factory ${className}.fromJson(Map<String, dynamic> json) => _${className}FromJson(json);
 		Map<String, dynamic> toJson() => _$${className}ToJson(this);
@@ -215,6 +234,16 @@ function quickFixJsonSerializable(
     // Create a new TextEdit to replace the entire document content
     overwriteDocument(document, edit, classSnippet);
   }
+}
+
+function getVariableMatchesFromClass(text: string) {
+  // Regular expression to match class variables
+  const regex = /(late\s)?(?:final\s+|const\s+)?([\w\d_]+)\s+([\w\d_]+);/gm;
+
+  // Match all class variables
+  const matches = text.matchAll(regex);
+
+  return matches;
 }
 
 function overwriteDocument(
