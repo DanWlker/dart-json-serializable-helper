@@ -4,6 +4,7 @@
   "description": "Helps with generating json serializable classes",
   "version": "0.0.1",
   "publisher": "DanWlker",
+  "icon": "media/flutter.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/DanWlker/dart-json-serializable-helper.git"
