@@ -8,7 +8,7 @@ To help generate @JsonSerializable classes
 
 ## Features
 
-### Snippet to generate @JsonSerializable class
+### Snippet to generate @JsonSerializable class `jsi`
 
    ![jsi](media/jsi.gif)
 
