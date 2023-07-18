@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { spawn, ChildProcess } from "child_process";
 import * as kill from "tree-kill";
+import * as path from "path";
 
 let _channel: vscode.OutputChannel;
 let _watchProcess: ChildProcess;
@@ -193,8 +194,8 @@ function quickFixJsonSerializable(
   const lineIndex = range.start.line;
   const lineText = document.lineAt(lineIndex).text;
   const classRegex = lineText.match(/class\s+(\w+)/);
-  const filePaths = document.fileName.split("\\");
-  const fileName = filePaths.at(-1);
+  const fileUri = document.uri;
+  const fileName = path.basename(fileUri.fsPath, path.extname(fileUri.fsPath));
 
   let textBeforeClass = "";
 
