@@ -197,7 +197,10 @@ function quickFixJsonSerializable(
   const fileUri = document.uri;
   const fileName = path.basename(fileUri.fsPath, path.extname(fileUri.fsPath));
 
-  let textBeforeClass = "";
+  let jsonSerializableHeaderImport =
+    "import 'package:json_annotation/json_annotation.dart';";
+  let jsonSerializableHeaderPart = `part '${fileName}.g.dart'`;
+  let jsonSerializableHeaderNotation = "@JsonSerializable()";
 
   if (range.start.line > 0) {
     const currentPosition = range.start;
@@ -206,6 +209,14 @@ function quickFixJsonSerializable(
     const lines = fullText.split("\n");
     textBeforeClass = lines.slice(0, lineNumber).join("\n").trim();
   }
+
+  // prettier-ignore
+  textBeforeClass = `\
+${textBeforeClass}
+${textBeforeClass.includes(jsonSerializableHeaderImport) ? "" : `${jsonSerializableHeaderImport}\n`}\
+${textBeforeClass.includes(jsonSerializableHeaderPart) ? "" : `${jsonSerializableHeaderPart}\n`}\
+${textBeforeClass.includes(jsonSerializableHeaderNotation) ? "":`\n${jsonSerializableHeaderNotation}\n`}\
+  `;
 
   if (classRegex && fileName) {
     const className = classRegex[1];
@@ -230,11 +241,7 @@ function quickFixJsonSerializable(
     // Generate the class declaration and constructor snippet
     // prettier-ignore
     const classSnippet = `\
-${textBeforeClass}${textBeforeClass.length === 0 ? "" : "\n"}\
-import 'package:json_annotation/json_annotation.dart';
-part '${fileName}.g.dart';
-
-@JsonSerializable()
+${textBeforeClass}\
 class ${className} {${variableSection.length === 0 ? "" : "\n"}${variableSection}
 \t${className}(${constructorVariableSection.length === 0 ? "" : "{"}${constructorVariableSection}${constructorVariableSection.length === 0 ? "" : "\n\t"}${constructorVariableSection.length === 0 ? "" : "}"});
 
