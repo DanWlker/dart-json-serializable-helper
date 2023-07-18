@@ -202,6 +202,8 @@ function quickFixJsonSerializable(
   let jsonSerializableHeaderPart = `part '${fileName}.g.dart'`;
   let jsonSerializableHeaderNotation = "@JsonSerializable()";
 
+  let textBeforeClass = "";
+
   if (range.start.line > 0) {
     const currentPosition = range.start;
     const lineNumber = currentPosition.line;
