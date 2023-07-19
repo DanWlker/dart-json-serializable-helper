@@ -29,3 +29,13 @@ To help generate @JsonSerializable classes
 ### 1.0.0
 
 Initial release
+
+### 1.0.1
+
+Fix Readme not showing `jsi` command
+
+### 1.0.2
+
+Fix filename part not retrieved correctly on macos
+Fix missing `$` symbol for `FromJson` generation
+Exclude imports and annotation if exist
