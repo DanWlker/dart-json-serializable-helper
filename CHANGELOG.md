@@ -4,6 +4,12 @@ All notable changes to the "dart-json-serializable-helper" extension will be doc
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.0.4] - 19 July 2023
+
+### Removed
+
+- Remove code gen commands, use other build_runner extensions for vscode
+
 ## [1.0.3] - 19 July 2023
 
 ### Fixed
