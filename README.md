@@ -23,19 +23,3 @@ To help generate @JsonSerializable classes
 ### Have build runner watch the @JSONSerializable annotated classes and generate code on changes
 
 ![code gen & watch](media/watch.gif)
-
-## Release Notes
-
-### 1.0.0
-
-Initial release
-
-### 1.0.1
-
-Fix Readme not showing `jsi` command
-
-### 1.0.2
-
-Fix filename part not retrieved correctly on macos
-Fix missing `$` symbol for `FromJson` generation
-Exclude imports and annotation if exist
