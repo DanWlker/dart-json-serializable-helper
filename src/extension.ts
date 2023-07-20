@@ -81,7 +81,7 @@ function quickFixJsonSerializable(
 
   let jsonSerializableHeaderImport =
     "import 'package:json_annotation/json_annotation.dart';";
-  let jsonSerializableHeaderPart = `part '${fileName}.g.dart'`;
+  let jsonSerializableHeaderPart = `part '${fileName}.g.dart';`;
   let jsonSerializableHeaderNotation = "@JsonSerializable()";
 
   let textBeforeClass = "";
