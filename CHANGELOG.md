@@ -4,7 +4,13 @@ All notable changes to the "dart-json-serializable-helper" extension will be doc
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [1.0.5] - 15 July 2023
+## [1.0.6] - 20 July 2023
+
+### Fixed
+
+- Fixed missing semicolon for `part`
+
+## [1.0.5] - 19 July 2023
 
 ### Fixed
 
