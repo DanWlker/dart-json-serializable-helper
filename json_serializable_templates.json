@@ -11,7 +11,7 @@
       "\t$1();",
       "",
       "\tfactory $1.fromJson(Map<String, dynamic> json) =>",
-      "\t\t\t$$1FromJson(json);",
+      "\t\t\t_$$1FromJson(json);",
       "\tMap<String, dynamic> toJson() => _$$1ToJson(this);",
       "}"
     ]

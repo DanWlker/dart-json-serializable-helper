@@ -4,6 +4,12 @@ All notable changes to the "dart-json-serializable-helper" extension will be doc
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.0.7] - 27 July 2023
+
+### Fixed
+
+- Fixed missing `_` for command `jsi`
+
 ## [1.0.6] - 20 July 2023
 
 ### Fixed
