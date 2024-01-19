@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import globalVal from "./globalVar";
+const fs = require("fs");
 
 export function toVarName(source: string): string {
   let s = source;
@@ -246,4 +248,22 @@ export function includesAll(source: string, matches: string[]) {
     }
   }
   return true;
+}
+
+export async function findProjectName() {
+  const pubspecs = await vscode.workspace.findFiles("pubspec.yaml");
+  if (pubspecs !== null && pubspecs.length > 0) {
+    const pubspec = pubspecs[0];
+    const content = fs.readFileSync(pubspec.fsPath, "utf8");
+    if (content !== null && content.includes("name: ")) {
+      globalVal.isFlutter =
+        content.includes("flutter:") && content.includes("sdk: flutter");
+      for (const line of content.split("\n")) {
+        if (line.startsWith("name: ")) {
+          globalVal.projectName = line.replace("name:", "").trim();
+          break;
+        }
+      }
+    }
+  }
 }

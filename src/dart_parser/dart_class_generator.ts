@@ -14,7 +14,7 @@ import {
   removeEnd,
 } from "./utils";
 
-class DataClassGenerator {
+export class DataClassGenerator {
   text: string;
   clazzes: DartClass[];
   fromJSON: boolean;

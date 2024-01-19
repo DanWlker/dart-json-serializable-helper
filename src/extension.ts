@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
+import { findProjectName } from "./dart_parser/utils";
+import { DataClassGenerator } from "./dart_parser/dart_class_generator";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("dart-json-serializable-helper is now active!");
@@ -20,6 +22,8 @@ export function activate(context: vscode.ExtensionContext) {
       }
     )
   );
+
+  findProjectName();
 }
 
 class QuickFixJsonSerializableProvider implements vscode.CodeActionProvider {
@@ -27,11 +31,15 @@ class QuickFixJsonSerializableProvider implements vscode.CodeActionProvider {
     document: vscode.TextDocument,
     range: vscode.Range
   ): boolean {
-    // Get the text of the current line
-    const lineText = document.lineAt(range.start.line).text;
-
-    // Check if the line contains the class keyword
-    return lineText.includes("class "); //with a space is intentional
+    const generator = new DataClassGenerator(document.getText());
+    for (let clazz of generator.clazzes) {
+      if (clazz.startsAtLine === null || clazz.endsAtLine === null) {
+        continue;
+      }
+      const lineNumber = range.start.line + 1;
+      return lineNumber === clazz.startsAtLine;
+    }
+    return false;
   }
   provideCodeActions(
     document: vscode.TextDocument,
@@ -57,13 +65,6 @@ class QuickFixJsonSerializableProvider implements vscode.CodeActionProvider {
 
     return codeActions;
   }
-
-  //   resolveCodeAction?(
-  //     codeAction: vscode.CodeAction,
-  //     token: vscode.CancellationToken
-  //   ): vscode.ProviderResult<vscode.CodeAction> {
-  //     throw new Error("Method not implemented.");
-  //   }
 }
 
 function quickFixJsonSerializable(
