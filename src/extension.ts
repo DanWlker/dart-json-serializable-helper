@@ -129,7 +129,7 @@ ${textBeforeClass}\
 class ${className} {${variableSection.length === 0 ? "" : "\n"}${variableSection}
 \t${className}(${constructorVariableSection.length === 0 ? "" : "{"}${constructorVariableSection}${constructorVariableSection.length === 0 ? "" : "\n\t"}${constructorVariableSection.length === 0 ? "" : "}"});
 
-\tfactory ${className}.fromJson(Map<String, dynamic> json) => 
+\tfactory ${className}.fromJson(Map<String, dynamic> json) =>
 \t\t\t_$${className}FromJson(json);
 \tMap<String, dynamic> toJson() => _$${className}ToJson(this);
 }

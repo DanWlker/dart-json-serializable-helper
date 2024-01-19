@@ -9,10 +9,10 @@ export class ClassPart {
 
   constructor(
     name: string,
-    startsAt = null,
-    endsAt = null,
-    current = null,
-    replacement = null
+    startsAt: number | null = null,
+    endsAt: number | null = null,
+    current: string | null = null,
+    replacement: string | null = null
   ) {
     this.name = name;
     this.startsAt = startsAt;
@@ -29,14 +29,14 @@ export class ClassPart {
 
   get startPos(): vscode.Position | null {
     if (this.startsAt === null) {
-      return null;
+      throw new Error("startsAt is null for ClassPart");
     }
     return new vscode.Position(this.startsAt, 0);
   }
 
   get endPos() {
     if (this.endsAt === null) {
-      return null;
+      throw new Error("endsAt is null for ClassPart");
     }
     return new vscode.Position(this.endsAt, 0);
   }

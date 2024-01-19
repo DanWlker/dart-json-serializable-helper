@@ -1,10 +1,9 @@
+import * as vscode from "vscode";
+
 export function toVarName(source: string): string {
   let s = source;
   let r = "";
 
-  /**
-   * @param {string} char
-   */
   let replace = (char: string) => {
     if (s.includes(char)) {
       const splits = s.split(char);
@@ -160,4 +159,91 @@ export function removeEnd(source: string, end: string | any[]) {
     const pos = source.length - end.length;
     return source.endsWith(end) ? source.substring(0, pos) : source;
   }
+}
+
+export function areStrictEqual(a: string, b: string) {
+  let x = a.replace(/\s/g, "");
+  let y = b.replace(/\s/g, "");
+  return x === y;
+}
+
+export function isBlank(str: string) {
+  return !str || /^\s*$/.test(str);
+}
+
+export function getEditor() {
+  return vscode.window.activeTextEditor;
+}
+
+export function readSetting(key: string) {
+  return vscode.workspace
+    .getConfiguration()
+    .get("dart_json_serializable_helper." + key);
+}
+
+export function count(source: string, match: string) {
+  let count = 0;
+  let length = match.length;
+  for (let i = 0; i < source.length; i++) {
+    let part = source.substr(i * length - 1, length);
+    if (part === match) {
+      count++;
+    }
+  }
+
+  return count;
+}
+
+function removeStart(source: string, start: string | any[]) {
+  if (Array.isArray(start)) {
+    let result = source.trim();
+    for (let s of start) {
+      result = removeStart(result, s).trim();
+    }
+    return result;
+  } else {
+    return source.startsWith(start)
+      ? source.substring(start.length, source.length)
+      : source;
+  }
+}
+
+export function indent(source: string) {
+  let r = "";
+  for (let line of source.split("\n")) {
+    r += "  " + line + "\n";
+  }
+  return r.length > 0 ? r : source;
+}
+
+export function includesOne(
+  source: string,
+  matches: string[],
+  wordBased = true
+) {
+  const words = wordBased ? source.split(" ") : [source];
+  for (let word of words) {
+    for (let match of matches) {
+      if (wordBased) {
+        if (word === match) {
+          return true;
+        }
+      } else {
+        if (source.includes(match)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+export function includesAll(source: string, matches: string[]) {
+  for (let match of matches) {
+    if (!source.includes(match)) {
+      return false;
+    }
+  }
+  return true;
 }

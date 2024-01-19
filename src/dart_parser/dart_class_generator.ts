@@ -1,14 +1,31 @@
+import { ClassField } from "./class-field";
+import { ClassPart } from "./class-part";
+import { DartClass } from "./dart-class";
+import { Imports } from "./imports";
+import globalVal from "./globalVar";
+import {
+  areStrictEqual,
+  count,
+  includesAll,
+  includesOne,
+  indent,
+  isBlank,
+  readSetting,
+  removeEnd,
+} from "./utils";
+
 class DataClassGenerator {
-  /**
-   * @param {String} text
-   * @param {DartClass[]} clazzes
-   * @param {boolean} fromJSON
-   * @param {string} part
-   */
-  constructor(text, clazzes = null, fromJSON = false, part = null) {
+  text: string;
+  clazzes: DartClass[];
+  fromJSON: boolean;
+  part: string | null;
+  imports: Imports;
+  clazz: DartClass | null;
+
+  constructor(text: string, clazzes = null, fromJSON = false, part = null) {
     this.text = text;
     this.fromJSON = fromJSON;
-    this.clazzes = clazzes == null ? this.parseAndReadClasses() : clazzes;
+    this.clazzes = clazzes === null ? this.parseAndReadClasses() : clazzes;
     this.imports = new Imports(text);
     this.part = part;
     this.generateDataClazzes();
@@ -19,19 +36,12 @@ class DataClassGenerator {
     return this.imports.hasImports;
   }
 
-  /**
-   * @param {string} imp
-   * @param {string[]} validOverrides
-   */
-  requiresImport(imp, validOverrides = []) {
+  requiresImport(imp: string, validOverrides: string[] = []) {
     this.imports.requiresImport(imp, validOverrides);
   }
 
-  /**
-   * @param {string} part
-   */
-  isPartSelected(part) {
-    return this.part == null || this.part == part;
+  isPartSelected(part: string) {
+    return this.part === null || this.part === part;
   }
 
   generateDataClazzes() {
@@ -41,39 +51,50 @@ class DataClassGenerator {
     for (let clazz of this.clazzes) {
       this.clazz = clazz;
 
-      if (insertConstructor) this.insertConstructor(clazz);
+      if (insertConstructor) {
+        this.insertConstructor(clazz);
+      }
 
       if (!clazz.isWidget) {
         if (!clazz.isAbstract) {
           if (
             readSetting("copyWith.enabled") &&
             this.isPartSelected("copyWith")
-          )
+          ) {
             this.insertCopyWith(clazz);
+          }
           if (
             readSetting("toMap.enabled") &&
             this.isPartSelected("serialization")
-          )
+          ) {
             this.insertToMap(clazz);
+          }
           if (
             readSetting("fromMap.enabled") &&
             this.isPartSelected("serialization")
-          )
+          ) {
             this.insertFromMap(clazz);
+          }
           if (
             readSetting("toJson.enabled") &&
             this.isPartSelected("serialization")
-          )
+          ) {
             this.insertToJson(clazz);
+          }
           if (
             readSetting("fromJson.enabled") &&
             this.isPartSelected("serialization")
-          )
+          ) {
             this.insertFromJson(clazz);
+          }
         }
 
-        if (readSetting("toString.enabled") && this.isPartSelected("toString"))
+        if (
+          readSetting("toString.enabled") &&
+          this.isPartSelected("toString")
+        ) {
           this.insertToString(clazz);
+        }
 
         if (
           (clazz.usesEquatable || readSetting("useEquatable")) &&
@@ -84,13 +105,15 @@ class DataClassGenerator {
           if (
             readSetting("equality.enabled") &&
             this.isPartSelected("equality")
-          )
+          ) {
             this.insertEquality(clazz);
+          }
           if (
             readSetting("hashCode.enabled") &&
             this.isPartSelected("equality")
-          )
+          ) {
             this.insertHash(clazz);
+          }
         }
       }
     }
@@ -101,18 +124,22 @@ class DataClassGenerator {
    * @param {string} finder
    * @param {DartClass} clazz
    */
-  findPart(name, finder, clazz) {
-    const normalize = (src) => {
+  findPart(name: string, finder: string, clazz: DartClass) {
+    const normalize = (src: string) => {
       let result = "";
       let generics = 0;
       let prevChar = "";
       for (const char of src) {
-        if (char == "<") generics++;
-        if (char != " " && generics == 0) {
+        if (char === "<") {
+          generics++;
+        }
+        if (char !== " " && generics === 0) {
           result += char;
         }
 
-        if (prevChar != "=" && char == ">") generics--;
+        if (prevChar !== "=" && char === ">") {
+          generics--;
+        }
         prevChar = char;
       }
 
@@ -127,24 +154,34 @@ class DataClassGenerator {
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      const lineNum = clazz.startsAtLine + i;
+      const clazzStartsAtLine = clazz.startsAtLine;
+      if (clazzStartsAtLine === null) {
+        throw Error("clazz.startsAtLine is null for DataClassGenerator");
+      }
+      const lineNum = clazzStartsAtLine + i;
 
       curlies += count(line, "{");
       curlies -= count(line, "}");
 
-      if (part.startsAt == null && normalize(line).startsWith(finderString)) {
-        if (line.includes("=>")) singleLine = true;
-        if (curlies == 2 || singleLine) {
+      if (part.startsAt === null && normalize(line).startsWith(finderString)) {
+        if (line.includes("=>")) {
+          singleLine = true;
+        }
+        if (curlies === 2 || singleLine) {
           part.startsAt = lineNum;
           part.current = line + "\n";
         }
       } else if (
-        part.startsAt != null &&
-        part.endsAt == null &&
+        part.startsAt !== null &&
+        part.endsAt === null &&
         (curlies >= 2 || singleLine)
       ) {
         part.current += line + "\n";
-      } else if (part.startsAt != null && part.endsAt == null && curlies == 1) {
+      } else if (
+        part.startsAt !== null &&
+        part.endsAt === null &&
+        curlies === 1
+      ) {
         part.endsAt = lineNum;
         part.current += line;
       }
@@ -153,8 +190,8 @@ class DataClassGenerator {
       // a single line function doesn't necessarily only have one single line.
       if (
         singleLine &&
-        part.startsAt != null &&
-        part.endsAt == null &&
+        part.startsAt !== null &&
+        part.endsAt === null &&
         line.trimRight().endsWith(";")
       ) {
         part.endsAt = lineNum;
@@ -168,10 +205,11 @@ class DataClassGenerator {
    * If class already exists and has a constructor with the parameter, reuse that parameter.
    * E.g. when the dev changed the parameter from this.x to this.x = y the generator inserts
    * this.x = y. This way the generator can preserve changes made in the constructor.
-   * @param {ClassField | string} prop
-   * @param {{ "name": string; "text": string; "isThis": boolean; }[]} oldProps
    */
-  findConstrParameter(prop, oldProps) {
+  findConstrParameter(
+    prop: ClassField | string,
+    oldProps: { name: string; text: string; isThis: boolean }[]
+  ) {
     const name = typeof prop === "string" ? prop : prop.name;
     for (let oldProp of oldProps) {
       if (name === oldProp.name) {
@@ -182,13 +220,10 @@ class DataClassGenerator {
     return null;
   }
 
-  /**
-   * @param {DartClass} clazz
-   */
-  findOldConstrProperties(clazz) {
+  findOldConstrProperties(clazz: DartClass) {
     if (
       !clazz.hasConstructor ||
-      clazz.constrStartsAtLine == clazz.constrEndsAtLine
+      clazz.constrStartsAtLine === clazz.constrEndsAtLine
     ) {
       return [];
     }
@@ -196,18 +231,28 @@ class DataClassGenerator {
     let oldConstr = "";
     let brackets = 0;
     let didFindConstr = false;
-    for (let c of clazz.constr) {
-      if (c == "(") {
-        if (didFindConstr) oldConstr += c;
+    const clazzConstr = clazz.constr;
+    if (clazzConstr === null) {
+      throw Error("clazzConstr is null for DartClassGenerator");
+    }
+    for (let c of clazzConstr) {
+      if (c === "(") {
+        if (didFindConstr) {
+          oldConstr += c;
+        }
         brackets++;
         didFindConstr = true;
         continue;
-      } else if (c == ")") {
+      } else if (c === ")") {
         brackets--;
-        if (didFindConstr && brackets == 0) break;
+        if (didFindConstr && brackets === 0) {
+          break;
+        }
       }
 
-      if (brackets >= 1) oldConstr += c;
+      if (brackets >= 1) {
+        oldConstr += c;
+      }
     }
 
     oldConstr = removeStart(oldConstr, ["{", "["]);
@@ -217,7 +262,7 @@ class DataClassGenerator {
     const oldProperties = [];
     for (let arg of oldArguments) {
       let formatted = arg.replace("required", "").trim();
-      if (formatted.indexOf("=") != -1) {
+      if (formatted.indexOf("=") !== -1) {
         formatted = formatted.substring(0, formatted.indexOf("=")).trim();
       }
 
@@ -230,11 +275,13 @@ class DataClassGenerator {
         const words = formatted.split(" ");
         if (words.length >= 1) {
           const w = words[1];
-          if (!isBlank(w)) name = w;
+          if (!isBlank(w)) {
+            name = w;
+          }
         }
       }
 
-      if (name != null) {
+      if (name !== null) {
         oldProperties.push({
           name: removeEnd(name.trim(), ","),
           text: arg.trim() + "\n",
@@ -246,36 +293,44 @@ class DataClassGenerator {
     return oldProperties;
   }
 
-  /**
-   * @param {DartClass} clazz
-   */
-  insertConstructor(clazz) {
+  insertConstructor(clazz: DartClass) {
     const withDefaults = readSetting("constructor.default_values");
 
     let constr = "";
     let startBracket = "({";
     let endBracket = "})";
 
-    if (clazz.constr != null) {
-      if (clazz.constr.trimLeft().startsWith("const")) constr += "const ";
+    if (clazz.constr !== null) {
+      if (clazz.constr.trimLeft().startsWith("const")) {
+        constr += "const ";
+      }
 
       // Detect custom constructor brackets and preserve them.
       const fConstr = clazz.constr.replace("const", "").trimLeft();
 
-      if (fConstr.startsWith(clazz.name + "([")) startBracket = "([";
-      else if (fConstr.startsWith(clazz.name + "({")) startBracket = "({";
-      else startBracket = "(";
+      if (fConstr.startsWith(clazz.name + "([")) {
+        startBracket = "([";
+      } else if (fConstr.startsWith(clazz.name + "({")) {
+        startBracket = "({";
+      } else {
+        startBracket = "(";
+      }
 
-      if (fConstr.includes("])")) endBracket = "])";
-      else if (fConstr.includes("})")) endBracket = "})";
-      else endBracket = ")";
+      if (fConstr.includes("])")) {
+        endBracket = "])";
+      } else if (fConstr.includes("})")) {
+        endBracket = "})";
+      } else {
+        endBracket = ")";
+      }
     } else {
       if (
         clazz.isWidget ||
         ((clazz.usesEquatable || readSetting("useEquatable")) &&
           this.isPartSelected("useEquatable"))
-      )
+      ) {
         constr += "const ";
+      }
     }
 
     constr += clazz.name + startBracket + "\n";
@@ -291,7 +346,9 @@ class DataClassGenerator {
         }
       }
 
-      if (!hasKey) constr += "  Key? key,\n";
+      if (!hasKey) {
+        constr += "  Key? key,\n";
+      }
     }
 
     const oldProperties = this.findOldConstrProperties(clazz);
@@ -303,8 +360,10 @@ class DataClassGenerator {
 
     for (let prop of clazz.properties) {
       const oldProperty = this.findConstrParameter(prop, oldProperties);
-      if (oldProperty != null) {
-        if (oldProperty.isThis) constr += "  " + oldProperty.text;
+      if (oldProperty !== null) {
+        if (oldProperty.isThis) {
+          constr += "  " + oldProperty.text;
+        }
 
         continue;
       }
@@ -317,8 +376,8 @@ class DataClassGenerator {
         const hasDefault =
           withDefaults &&
           (prop.isPrimitive || prop.isCollection) &&
-          prop.rawType != "dynamic";
-        const isNamedConstr = startBracket == "({" && endBracket == "})";
+          prop.rawType !== "dynamic";
+        const isNamedConstr = startBracket === "({" && endBracket === "})";
 
         if (hasDefault) {
           constr += `${parameter} = ${prop.defValue},\n`;
@@ -336,13 +395,15 @@ class DataClassGenerator {
       constr += endBracket + (clazz.isWidget ? " : super(key: key);" : ";");
     };
 
-    if (clazz.constr != null) {
+    if (clazz.constr !== null) {
       let i = null;
-      if (clazz.constr.includes(" : ")) i = clazz.constr.indexOf(" : ") + 1;
-      else if (clazz.constr.trimRight().endsWith("{"))
+      if (clazz.constr.includes(" : ")) {
+        i = clazz.constr.indexOf(" : ") + 1;
+      } else if (clazz.constr.trimRight().endsWith("{")) {
         i = clazz.constr.lastIndexOf("{");
+      }
 
-      if (i != null) {
+      if (i !== null) {
         let ending = clazz.constr.substring(i, clazz.constr.length);
         constr += `${endBracket} ${ending}`;
       } else {
@@ -353,9 +414,14 @@ class DataClassGenerator {
     }
 
     if (clazz.hasConstructor) {
-      clazz.constrDifferent = !areStrictEqual(clazz.constr, constr);
+      const clazzConstr = clazz.constr;
+      if (clazzConstr === null) {
+        throw Error("clazzConstr is null in DataClassGenerator");
+      }
+      clazz.constrDifferent = !areStrictEqual(clazzConstr, constr);
       if (clazz.constrDifferent) {
         constr = removeEnd(indent(constr), "\n");
+
         this.replace(
           new ClassPart(
             "constructor",
@@ -373,10 +439,7 @@ class DataClassGenerator {
     }
   }
 
-  /**
-   * @param {DartClass} clazz
-   */
-  insertCopyWith(clazz) {
+  insertCopyWith(clazz: DartClass) {
     let method = clazz.type + " copyWith({\n";
     for (const prop of clazz.properties) {
       method += `  ${prop.type}? ${prop.name},\n`;
@@ -396,17 +459,16 @@ class DataClassGenerator {
     this.appendOrReplace("copyWith", method, `${clazz.name} copyWith(`, clazz);
   }
 
-  /**
-   * @param {DartClass} clazz
-   */
-  insertToMap(clazz) {
+  insertToMap(clazz: DartClass) {
     let props = clazz.properties;
-    /**
-     * @param {ClassField} prop
-     */
-    function customTypeMapping(prop, name = null, endFlag = ",\n") {
+
+    function customTypeMapping(
+      prop: ClassField,
+      name: string | null = null,
+      endFlag = ",\n"
+    ) {
       prop = prop.isCollection ? prop.listType : prop;
-      name = name == null ? prop.name : name;
+      name = name === null ? prop.name : name;
 
       const nullSafe = prop.isNullable ? "?" : "";
 
@@ -430,9 +492,11 @@ class DataClassGenerator {
       method += `    '${p.jsonName}': `;
 
       if (p.isEnum) {
-        if (p.isCollection)
+        if (p.isCollection) {
           method += `${p.name}.map((x) => x.index).toList(),\n`;
-        else method += `${p.name}.index,\n`;
+        } else {
+          method += `${p.name}.index,\n`;
+        }
       } else if (p.isCollection) {
         if (p.isMap || p.listType.isPrimitive) {
           const mapFlag = p.isSet
@@ -449,7 +513,9 @@ class DataClassGenerator {
       } else {
         method += customTypeMapping(p);
       }
-      if (p.name == props[props.length - 1].name) method += "  };\n";
+      if (p.name === props[props.length - 1].name) {
+        method += "  };\n";
+      }
     }
     method += "}";
 
@@ -461,31 +527,27 @@ class DataClassGenerator {
     );
   }
 
-  /**
-   * @param {DartClass} clazz
-   */
-  insertFromMap(clazz) {
+  insertFromMap(clazz: DartClass) {
     let withDefaultValues = readSetting("fromMap.default_values");
     const leftOfValue = withDefaultValues ? "(" : "";
     const rightOfValue = withDefaultValues ? ")" : "";
     let props = clazz.properties;
     const fromJSON = this.fromJSON;
 
-    /**
-     * @param {ClassField} prop
-     */
-    function customTypeMapping(prop, value = null) {
+    function customTypeMapping(prop: ClassField, value: string | null = null) {
       const materialConvertValue = prop.isCollection ? "" : " as int";
       prop = prop.isCollection ? prop.listType : prop;
       const isAddDefault =
         withDefaultValues &&
-        prop.rawType != "dynamic" &&
+        prop.rawType !== "dynamic" &&
         !prop.isNullable &&
         prop.isPrimitive;
       const addLeftDefault = isAddDefault ? leftOfValue : "";
       const addRightDefault = isAddDefault ? rightOfValue : "";
       value =
-        value == null ? `${addLeftDefault}map['` + prop.jsonName + "']" : value;
+        value === null
+          ? `${addLeftDefault}map['` + prop.jsonName + "']"
+          : value;
 
       switch (prop.type) {
         case "DateTime":
@@ -558,8 +620,11 @@ class DataClassGenerator {
         }
         /// (map['name'] ?? '') as String
       } else {
-        if (p.isPrimitive) method += customTypeMapping(p) + ` as ${p.type}`;
-        else method += customTypeMapping(p);
+        if (p.isPrimitive) {
+          method += customTypeMapping(p) + ` as ${p.type}`;
+        } else {
+          method += customTypeMapping(p);
+        }
       }
 
       // end nullable check if field is nullable
@@ -569,8 +634,10 @@ class DataClassGenerator {
 
       method += `,\n`;
 
-      const isLast = p.name == props[props.length - 1].name;
-      if (isLast) method += "  );\n";
+      const isLast = p.name === props[props.length - 1].name;
+      if (isLast) {
+        method += "  );\n";
+      }
     }
     method += "}";
 
@@ -582,20 +649,14 @@ class DataClassGenerator {
     );
   }
 
-  /**
-   * @param {DartClass} clazz
-   */
-  insertToJson(clazz) {
+  insertToJson(clazz: DartClass) {
     this.requiresImport("dart:convert");
 
     const method = "String toJson() => json.encode(toMap());";
     this.appendOrReplace("toJson", method, "String toJson()", clazz);
   }
 
-  /**
-   * @param {DartClass} clazz
-   */
-  insertFromJson(clazz) {
+  insertFromJson(clazz: DartClass) {
     this.requiresImport("dart:convert");
 
     const method = `factory ${clazz.name}.fromJson(String source) => ${clazz.name}.fromMap(json.decode(source) as Map<String, dynamic>);`;
@@ -607,10 +668,7 @@ class DataClassGenerator {
     );
   }
 
-  /**
-   * @param {DartClass} clazz
-   */
-  insertToString(clazz) {
+  insertToString(clazz: DartClass) {
     if (clazz.usesEquatable || readSetting("useEquatable")) {
       let stringify = "@override\n";
       stringify += "bool get stringify => true;";
@@ -624,10 +682,12 @@ class DataClassGenerator {
       method += `${!short ? "  return" : ""} '` + `${clazz.name}(`;
       for (let p of props) {
         const name = p.name;
-        const isFirst = name == props[0].name;
-        const isLast = name == props[props.length - 1].name;
+        const isFirst = name === props[0].name;
+        const isLast = name === props[props.length - 1].name;
 
-        if (!isFirst) method += " ";
+        if (!isFirst) {
+          method += " ";
+        }
 
         method += name + ": $" + name + ",";
 
@@ -642,66 +702,71 @@ class DataClassGenerator {
     }
   }
 
-  /**
-   * @param {DartClass} clazz
-   */
-  insertEquality(clazz) {
+  insertEquality(clazz: DartClass) {
     const props = clazz.properties;
-    const hasCollection = props.find((p) => p.isCollection) != undefined;
+    const hasCollection = props.find((p) => p.isCollection) !== undefined;
 
     let collectionEqualityFn;
     if (hasCollection) {
       // Flutter already has collection equality functions
       // in the foundation package.
-      if (isFlutter) {
+      if (globalVal.isFlutter) {
         this.requiresImport("package:flutter/foundation.dart");
       } else {
         this.requiresImport("package:collection/collection.dart");
 
         collectionEqualityFn = "collectionEquals";
         const isListOnly =
-          props.find((p) => p.isCollection && !p.isList) == undefined;
-        if (isListOnly) collectionEqualityFn = "listEquals";
+          props.find((p) => p.isCollection && !p.isList) === undefined;
+        if (isListOnly) {
+          collectionEqualityFn = "listEquals";
+        }
         const isMapOnly =
-          props.find((p) => p.isCollection && !p.isMap) == undefined;
-        if (isMapOnly) collectionEqualityFn = "mapEquals";
+          props.find((p) => p.isCollection && !p.isMap) === undefined;
+        if (isMapOnly) {
+          collectionEqualityFn = "mapEquals";
+        }
         const isSetOnly =
-          props.find((p) => p.isCollection && !p.isSet) == undefined;
-        if (isSetOnly) collectionEqualityFn = "setEquals";
+          props.find((p) => p.isCollection && !p.isSet) === undefined;
+        if (isSetOnly) {
+          collectionEqualityFn = "setEquals";
+        }
       }
     }
 
     let method = "@override\n";
     method += `bool operator ==(covariant ${clazz.type} other) {\n`;
     method += "  if (identical(this, other)) return true;\n";
-    if (hasCollection && !isFlutter)
+    if (hasCollection && !globalVal.isFlutter) {
       method += `  final ${collectionEqualityFn} = const DeepCollectionEquality().equals;\n`;
+    }
     method += "\n";
     method += "  return \n";
     for (let prop of props) {
       if (prop.isCollection) {
-        if (isFlutter)
+        if (globalVal.isFlutter) {
           collectionEqualityFn = prop.isSet
             ? "setEquals"
             : prop.isMap
             ? "mapEquals"
             : "listEquals";
+        }
         method += `    ${collectionEqualityFn}(other.${prop.name}, ${prop.name})`;
       } else {
         method += `    other.${prop.name} == ${prop.name}`;
       }
-      if (prop.name != props[props.length - 1].name) method += " &&\n";
-      else method += ";\n";
+      if (prop.name !== props[props.length - 1].name) {
+        method += " &&\n";
+      } else {
+        method += ";\n";
+      }
     }
     method += "}";
 
     this.appendOrReplace("equality", method, "bool operator ==", clazz);
   }
 
-  /**
-   * @param {DartClass} clazz
-   */
-  insertHash(clazz) {
+  insertHash(clazz: DartClass) {
     const useJenkins = readSetting("hashCode.use_jenkins");
     const short = !useJenkins && clazz.fewProps;
     const props = clazz.properties;
@@ -723,11 +788,11 @@ class DataClassGenerator {
       method += "  ]);";
     } else {
       for (let p of props) {
-        const isFirst = p == props[0];
+        const isFirst = p === props[0];
         method += `${isFirst && !short ? "" : short ? " " : "    "}${
           p.name
         }.hashCode`;
-        if (p == props[props.length - 1]) {
+        if (p === props[props.length - 1]) {
           method += ";";
         } else {
           method += ` ^${!short ? "\n" : ""}`;
@@ -735,24 +800,25 @@ class DataClassGenerator {
       }
     }
 
-    if (!short) method += "\n}";
+    if (!short) {
+      method += "\n}";
+    }
 
     this.appendOrReplace("hashCode", method, "int get hashCode", clazz);
   }
 
-  /**
-   * @param {DartClass} clazz
-   */
-  addEquatableDetails(clazz) {
+  addEquatableDetails(clazz: DartClass) {
     // Do not generate Equatable for class with 'Base' in their
     // names as Base classes should inherit from Equatable.
     // see: https://github.com/BendixMa/Dart-Data-Class-Generator/issues/8
-    if (clazz.hasSuperclass && clazz.superclass.includes("Base")) return;
+    if (clazz.superclass !== null && clazz.superclass.includes("Base")) {
+      return;
+    }
 
     this.requiresImport("package:equatable/equatable.dart");
 
     if (!clazz.usesEquatable) {
-      if (clazz.hasSuperclass || readSetting("useEquatableMixin")) {
+      if (clazz.superclass !== null || readSetting("useEquatableMixin")) {
         this.addMixin("EquatableMixin");
       } else {
         this.setSuperClass("Equatable");
@@ -760,10 +826,7 @@ class DataClassGenerator {
     }
   }
 
-  /**
-   * @param {DartClass} clazz
-   */
-  insertEquatable(clazz) {
+  insertEquatable(clazz: DartClass) {
     this.addEquatableDetails(clazz);
 
     const props = clazz.properties;
@@ -773,12 +836,14 @@ class DataClassGenerator {
     method += `List<Object> get props ${!short ? "{\n" : "=>"}`;
     method += `${!short ? "  return" : ""} ` + "[" + (!short ? "\n" : "");
     for (let prop of props) {
-      const isLast = prop.name == props[props.length - 1].name;
+      const isLast = prop.name === props[props.length - 1].name;
       const inset = !short ? "    " : "";
       method += inset + prop.name + split;
 
       if (isLast) {
-        if (short) method = removeEnd(method, split);
+        if (short) {
+          method = removeEnd(method, split);
+        }
         method += (!short ? "  " : "") + "];" + (!short ? "\n" : "");
       }
     }
@@ -787,45 +852,42 @@ class DataClassGenerator {
     this.appendOrReplace("props", method, "List<Object> get props", clazz);
   }
 
-  /**
-   * @param {string} mixin
-   */
-  addMixin(mixin) {
+  addMixin(mixin: string) {
+    if (this.clazz === null) {
+      throw Error("this.clazz is null in DartClassGenerator");
+    }
     const mixins = this.clazz.mixins;
     if (!mixins.includes(mixin)) {
       mixins.push(mixin);
     }
   }
 
-  /**
-   * @param {string} impl
-   */
-  addInterface(impl) {
+  addInterface(impl: string) {
+    if (this.clazz === null) {
+      throw Error("this.clazz is null in DartClassGenerator");
+    }
     const interfaces = this.clazz.interfaces;
     if (!interfaces.includes(impl)) {
       interfaces.push(impl);
     }
   }
 
-  /**
-   * @param {string} clazz
-   */
-  setSuperClass(clazz) {
+  setSuperClass(clazz: string) {
+    if (this.clazz === null) {
+      throw Error("this.clazz is null in DartClassGenerator");
+    }
     this.clazz.superclass = clazz;
   }
 
-  /**
-   * @param {string} name
-   * @param {string} n
-   * @param {string} finder
-   * @param {DartClass} clazz
-   */
-  appendOrReplace(name, n, finder, clazz) {
+  appendOrReplace(name: string, n: string, finder: string, clazz: DartClass) {
     let part = this.findPart(name, finder, clazz);
     let replacement = removeEnd(indent(n.replace("@override\n", "")), "\n");
 
-    if (part != null) {
+    if (part !== null) {
       part.replacement = replacement;
+      if (part.current === null) {
+        throw Error("part.current is null in DartClassGenerator");
+      }
       if (!areStrictEqual(part.current, part.replacement)) {
         this.replace(part, clazz);
       }
@@ -834,20 +896,12 @@ class DataClassGenerator {
     }
   }
 
-  /**
-   * @param {string} method
-   * @param {DartClass} clazz
-   */
-  append(method, clazz, constr = false) {
+  append(method: string, clazz: DartClass, constr = false) {
     let met = indent(method);
     constr ? (clazz.constr = met) : (clazz.toInsert += "\n" + met);
   }
 
-  /**
-   * @param {ClassPart} part
-   * @param {DartClass} clazz
-   */
-  replace(part, clazz) {
+  replace(part: ClassPart, clazz: DartClass) {
     clazz.toReplace.push(part);
   }
 
@@ -886,18 +940,18 @@ class DataClassGenerator {
         for (let word of words) {
           word = word.trim();
           if (word.length > 0) {
-            if (word == "class") {
+            if (word === "class") {
               classNext = true;
-            } else if (word == "extends") {
+            } else if (word === "extends") {
               extendsNext = true;
             } else if (extendsNext) {
               extendsNext = false;
               clazz.superclass = word;
-            } else if (word == "with") {
+            } else if (word === "with") {
               mixinsNext = true;
               extendsNext = false;
               implementsNext = false;
-            } else if (word == "implements") {
+            } else if (word === "implements") {
               mixinsNext = false;
               extendsNext = false;
               implementsNext = true;
@@ -958,14 +1012,14 @@ class DataClassGenerator {
         }
 
         if (
-          clazz.constrStartsAtLine != null &&
-          clazz.constrEndsAtLine == null
+          clazz.constrStartsAtLine !== null &&
+          clazz.constrEndsAtLine === null
         ) {
           clazz.constr =
-            clazz.constr == null ? line + "\n" : clazz.constr + line + "\n";
+            clazz.constr === null ? line + "\n" : clazz.constr + line + "\n";
 
           // Detect end of constructor.
-          if (brackets == 0) {
+          if (brackets === 0) {
             clazz.constrEndsAtLine = linePos;
             clazz.constr = removeEnd(clazz.constr, "\n");
           }
@@ -973,14 +1027,17 @@ class DataClassGenerator {
 
         clazz.classContent += line;
         // Detect end of class.
-        if (curlyBrackets != 0) {
+        if (curlyBrackets === 0) {
           clazz.classContent += "\n";
         } else {
           clazz.endsAtLine = linePos;
           clazz = new DartClass();
         }
 
-        if (brackets == 0 && curlyBrackets == 1) {
+        if (brackets === 0 && curlyBrackets === 1) {
+          if (clazz.name === null) {
+            throw Error("clazz.name is null in DataClassGenerator");
+          }
           // Check if a line is valid to only include real properties.
           const lineValid =
             // Line shouldn't start with the class name as this would
@@ -995,7 +1052,7 @@ class DataClassGenerator {
             // Do not include final values that are assigned a value.
             !includesAll(line, ["final ", "="]) &&
             // Do not inlcude non final fields that were declared after the constructor.
-            (clazz.constrStartsAtLine == null || line.includes("final ")) &&
+            (clazz.constrStartsAtLine === null || line.includes("final ")) &&
             // Make sure not to catch abstract functions.
             !line.replace(/\s/g, "").endsWith(");");
 
@@ -1008,36 +1065,42 @@ class DataClassGenerator {
             const words = line.trim().split(" ");
             for (let i = 0; i < words.length; i++) {
               const word = words[i];
-              const isLast = i == words.length - 1;
+              const isLast = i === words.length - 1;
 
-              if (word.length > 0 && word != "}" && word != "{") {
-                if (word == "final") {
+              if (word.length > 0 && word !== "}" && word !== "{") {
+                if (word === "final") {
                   isFinal = true;
-                } else if (i == 0 && word == "const") {
+                } else if (i === 0 && word === "const") {
                   isConst = true;
                 }
 
                 // Be sure to not include keywords.
-                if (word != "final" && word != "const") {
+                if (word !== "final" && word !== "const") {
                   // If word ends with semicolon => variable name, else type.
                   let isVariable =
-                    word.endsWith(";") || (!isLast && words[i + 1] == "=");
+                    word.endsWith(";") || (!isLast && words[i + 1] === "=");
                   // Make sure we don't capture abstract functions like: String func();
                   isVariable = isVariable && !includesOne(word, ["(", ")"]);
                   if (isVariable) {
-                    if (name == null) name = removeEnd(word, ";");
+                    if (name === null) {
+                      name = removeEnd(word, ";");
+                    }
                   } else {
-                    if (type == null) type = word;
+                    if (type === null) {
+                      type = word;
+                    }
                     // Types can have gaps => Pair<A, B>,
                     // thus append word to type if a name hasn't
                     // been detected.
-                    else if (name == null) type += " " + word;
+                    else if (name === null) {
+                      type += " " + word;
+                    }
                   }
                 }
               }
             }
 
-            if (type != null && name != null) {
+            if (type !== null && name !== null) {
               const prop = new ClassField(
                 type,
                 name,
@@ -1048,7 +1111,7 @@ class DataClassGenerator {
 
               if (i > 0) {
                 const prevLine = lines[i - 1];
-                prop.isEnum = prevLine.match(/.*\/\/(\s*)enum/) != null;
+                prop.isEnum = prevLine.match(/.*\/\/(\s*)enum/) !== null;
               }
 
               clazz.properties.push(prop);
@@ -1067,23 +1130,29 @@ class DataClassGenerator {
    *
    * @param {string} line
    */
-  splitWhileMaintaingGenerics(line) {
-    let words = [];
+  splitWhileMaintaingGenerics(line: string) {
+    let words: string[] = [];
     let index = 0;
     let generics = 0;
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
-      const isCurly = char == "{";
-      const isSpace = char == " ";
+      const isCurly = char === "{";
+      const isSpace = char === " ";
 
-      if (char == "<") generics++;
-      if (char == ">") generics--;
+      if (char === "<") {
+        generics++;
+      }
+      if (char === ">") {
+        generics--;
+      }
 
-      if (generics == 0 && (isSpace || isCurly)) {
+      if (generics === 0 && (isSpace || isCurly)) {
         const word = line.substring(index, i).trim();
 
         // Do not add whitespace.
-        if (word.length == 0) continue;
+        if (word.length === 0) {
+          continue;
+        }
         const isOnlyGeneric = word.startsWith("<");
 
         // Append the generic type to the word when there is spacing
@@ -1104,4 +1173,7 @@ class DataClassGenerator {
 
     return words;
   }
+}
+function removeStart(oldConstr: string, arg1: string[]): string {
+  throw new Error("Function not implemented.");
 }

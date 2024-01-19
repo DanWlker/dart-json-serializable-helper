@@ -2,7 +2,7 @@ import { ClassField } from "./class-field";
 import { ClassPart } from "./class-part";
 import { removeEnd } from "./utils";
 
-class DartClass {
+export class DartClass {
   name: string | null;
   fullGenericType: string;
   superclass: string | null;
@@ -68,10 +68,6 @@ class DartClass {
     } else {
       return -1;
     }
-  }
-
-  get hasSuperclass() {
-    return this.superclass !== null;
   }
 
   get classDetected() {
@@ -164,7 +160,7 @@ class DartClass {
 
   get usesEquatable() {
     return (
-      (this.hasSuperclass && this.superclass === "Equatable") ||
+      (this.superclass !== null && this.superclass === "Equatable") ||
       (this.hasMixins && this.mixins.includes("EquatableMixin"))
     );
   }
@@ -200,6 +196,9 @@ class DartClass {
   replacementAtLine(line: number) {
     for (let part of this.toReplace) {
       if (part.startsAt === null || part.endsAt === null) {
+        console.log(
+          `startsAt: ${part.startsAt}, endsAt: ${part.endsAt} for DartClass`
+        );
         continue;
       }
       if (part.startsAt <= line && part.endsAt >= line) {
@@ -215,7 +214,9 @@ class DartClass {
     let lines = this.classContent.split("\n");
 
     if (this.endsAtLine === null || this.startsAtLine === null) {
-      return replacement;
+      throw Error(
+        `startsAtLine: ${this.startsAtLine}, endsAtLine ${this.endsAtLine} for DartClass`
+      );
     }
 
     for (let i = this.endsAtLine - this.startsAtLine; i >= 0; i--) {
