@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { findProjectName } from "./dart_parser/utils";
-import { DataClassGenerator } from "./dart_parser/dart_class_generator";
-import { start } from "repl";
+import { DataClassGenerator } from "./dart_parser/data_class_generator";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("dart-json-serializable-helper is now active!");
