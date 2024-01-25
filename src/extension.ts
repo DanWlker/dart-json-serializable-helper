@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { findProjectName } from "./dart_parser/utils";
 import { DataClassGenerator } from "./dart_parser/data_class_generator";
+import { DartClass } from "./dart_parser/dart-class";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("dart-json-serializable-helper is now active!");
@@ -44,13 +45,9 @@ class QuickFixJsonSerializableProvider implements vscode.CodeActionProvider {
   }
 
   private isCursorOnClass(
-    document: vscode.TextDocument,
-    range: vscode.Range
+    clazz: DartClass | null,
+    lineNumber: number
   ): boolean {
-    let generator = new DataClassGenerator(document.getText());
-    let lineNumber = range.start.line + 1;
-    let clazz = this.getClass(generator, lineNumber);
-
     if (clazz === null) {
       return false;
     }
@@ -61,6 +58,7 @@ class QuickFixJsonSerializableProvider implements vscode.CodeActionProvider {
 
     return lineNumber === clazz.startsAtLine;
   }
+
   provideCodeActions(
     document: vscode.TextDocument,
     range: vscode.Range | vscode.Selection,
@@ -68,9 +66,15 @@ class QuickFixJsonSerializableProvider implements vscode.CodeActionProvider {
     token: vscode.CancellationToken
   ): vscode.ProviderResult<(vscode.CodeAction | vscode.Command)[]> {
     const codeActions: vscode.CodeAction[] = [];
+    let generator = new DataClassGenerator(document.getText());
+    let lineNumber = range.start.line + 1;
+    let clazz = this.getClass(generator, lineNumber);
 
-    // Check if the cursor position is on a Dart class
-    if (this.isCursorOnClass(document, range)) {
+    // Check if the cursor position is on a Dart class and only has one class in the file
+    if (
+      generator.clazzes.length === 1 &&
+      this.isCursorOnClass(clazz, lineNumber)
+    ) {
       const action = new vscode.CodeAction(
         "Generate @JsonSerializable class template",
         vscode.CodeActionKind.QuickFix
