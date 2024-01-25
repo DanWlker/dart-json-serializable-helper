@@ -38,6 +38,7 @@ export class Imports {
 
   get didChange() {
     if (this.rawImports === null) {
+      console.log("rawImports is null for Imports");
       throw Error("rawImports is null for Imports");
     }
 
@@ -111,6 +112,7 @@ export class Imports {
     if (workspace === null || workspace.length === 0) {
       const file = getEditor()?.document.uri;
       if (file === undefined) {
+        console.log("file is undefined in Imports");
         throw Error("file is undefined in Imports");
       }
       if (file.scheme === "file") {

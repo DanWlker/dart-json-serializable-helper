@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { findProjectName } from "./dart_parser/utils";
 import { DataClassGenerator } from "./dart_parser/dart_class_generator";
+import { start } from "repl";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("dart-json-serializable-helper is now active!");
@@ -27,19 +28,39 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 class QuickFixJsonSerializableProvider implements vscode.CodeActionProvider {
+  getClass(generator: DataClassGenerator, lineNumber: number) {
+    for (let clazz of generator.clazzes) {
+      let startsAtLine = clazz.startsAtLine;
+      let endsAtLine = clazz.endsAtLine;
+
+      if (startsAtLine === null || endsAtLine === null) {
+        continue;
+      }
+
+      if (startsAtLine <= lineNumber && endsAtLine >= lineNumber) {
+        return clazz;
+      }
+    }
+    return null;
+  }
+
   private isCursorOnClass(
     document: vscode.TextDocument,
     range: vscode.Range
   ): boolean {
-    const generator = new DataClassGenerator(document.getText());
-    for (let clazz of generator.clazzes) {
-      if (clazz.startsAtLine === null || clazz.endsAtLine === null) {
-        continue;
-      }
-      const lineNumber = range.start.line + 1;
-      return lineNumber === clazz.startsAtLine;
+    let generator = new DataClassGenerator(document.getText());
+    let lineNumber = range.start.line + 1;
+    let clazz = this.getClass(generator, lineNumber);
+
+    if (clazz === null) {
+      return false;
     }
-    return false;
+
+    if (!clazz.isValid) {
+      return false;
+    }
+
+    return lineNumber === clazz.startsAtLine;
   }
   provideCodeActions(
     document: vscode.TextDocument,

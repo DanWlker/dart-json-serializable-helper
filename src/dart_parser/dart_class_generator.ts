@@ -156,6 +156,7 @@ export class DataClassGenerator {
       const line = lines[i];
       const clazzStartsAtLine = clazz.startsAtLine;
       if (clazzStartsAtLine === null) {
+        console.log("clazz.startsAtLine is null for DataClassGenerator");
         throw Error("clazz.startsAtLine is null for DataClassGenerator");
       }
       const lineNum = clazzStartsAtLine + i;
@@ -233,6 +234,7 @@ export class DataClassGenerator {
     let didFindConstr = false;
     const clazzConstr = clazz.constr;
     if (clazzConstr === null) {
+      console.log("clazzConstr is null for DartClassGenerator");
       throw Error("clazzConstr is null for DartClassGenerator");
     }
     for (let c of clazzConstr) {
@@ -416,6 +418,7 @@ export class DataClassGenerator {
     if (clazz.hasConstructor) {
       const clazzConstr = clazz.constr;
       if (clazzConstr === null) {
+        console.log("clazzConstr is null in DataClassGenerator");
         throw Error("clazzConstr is null in DataClassGenerator");
       }
       clazz.constrDifferent = !areStrictEqual(clazzConstr, constr);
@@ -854,6 +857,7 @@ export class DataClassGenerator {
 
   addMixin(mixin: string) {
     if (this.clazz === null) {
+      console.log("this.clazz is null in DartClassGenerator");
       throw Error("this.clazz is null in DartClassGenerator");
     }
     const mixins = this.clazz.mixins;
@@ -864,6 +868,7 @@ export class DataClassGenerator {
 
   addInterface(impl: string) {
     if (this.clazz === null) {
+      console.log("this.clazz is null in DartClassGenerator");
       throw Error("this.clazz is null in DartClassGenerator");
     }
     const interfaces = this.clazz.interfaces;
@@ -874,6 +879,7 @@ export class DataClassGenerator {
 
   setSuperClass(clazz: string) {
     if (this.clazz === null) {
+      console.log("this.clazz is null in DartClassGenerator");
       throw Error("this.clazz is null in DartClassGenerator");
     }
     this.clazz.superclass = clazz;
@@ -886,6 +892,7 @@ export class DataClassGenerator {
     if (part !== null) {
       part.replacement = replacement;
       if (part.current === null) {
+        console.log("part.current is null in DartClassGenerator");
         throw Error("part.current is null in DartClassGenerator");
       }
       if (!areStrictEqual(part.current, part.replacement)) {
@@ -1027,7 +1034,7 @@ export class DataClassGenerator {
 
         clazz.classContent += line;
         // Detect end of class.
-        if (curlyBrackets === 0) {
+        if (curlyBrackets !== 0) {
           clazz.classContent += "\n";
         } else {
           clazz.endsAtLine = linePos;
@@ -1036,6 +1043,7 @@ export class DataClassGenerator {
 
         if (brackets === 0 && curlyBrackets === 1) {
           if (clazz.name === null) {
+            console.log("clazz.name is null in DataClassGenerator");
             throw Error("clazz.name is null in DataClassGenerator");
           }
           // Check if a line is valid to only include real properties.

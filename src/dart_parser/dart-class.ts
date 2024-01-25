@@ -214,6 +214,9 @@ export class DartClass {
     let lines = this.classContent.split("\n");
 
     if (this.endsAtLine === null || this.startsAtLine === null) {
+      console.log(
+        `startsAtLine: ${this.startsAtLine}, endsAtLine ${this.endsAtLine} for DartClass`
+      );
       throw Error(
         `startsAtLine: ${this.startsAtLine}, endsAtLine ${this.endsAtLine} for DartClass`
       );
