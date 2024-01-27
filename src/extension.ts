@@ -98,6 +98,7 @@ function quickFixJsonSerializableDataClassVer(
   document: vscode.TextDocument,
   range: vscode.Range
 ) {
+  let documentText = document.getText();
   // Constant stuff that we will definitely need
   const fileUri = document.uri;
   const fileName = path.basename(fileUri.fsPath, path.extname(fileUri.fsPath));
@@ -105,9 +106,15 @@ function quickFixJsonSerializableDataClassVer(
     "import 'package:json_annotation/json_annotation.dart';";
   let jsonSerializableHeaderPart = `part '${fileName}.g.dart';`;
   let jsonSerializableHeaderNotation = "@JsonSerializable()";
+  // prettier-ignore
+  let jsonSerializableCombinedText: string = `\
+${documentText.includes(jsonSerializableHeaderImport) ? "" : `${jsonSerializableHeaderImport}\n`}\
+${documentText.includes(jsonSerializableHeaderPart) ? "" : `${jsonSerializableHeaderPart}\n`}\
+
+${jsonSerializableHeaderNotation}`;
 
   // Start using class generator
-  let generator = new DataClassGenerator(document.getText());
+  let generator = new DataClassGenerator(documentText);
   let firstDartClass = generator.clazzes[0];
 
   // imports
@@ -120,16 +127,15 @@ function quickFixJsonSerializableDataClassVer(
   let className = firstDartClass.name;
 
   // variables
-  let variables = removeEnd(
-    firstDartClass.propertiesStringList.join("\n"),
-    "\n"
-  );
+  let variables = removeEnd(firstDartClass.propertiesStringList.join(""), "\n");
+
+  // constructor
 
   // Generate the class declaration and constructor snippet
   // prettier-ignore
   const finalText = `\
 ${imports}
-
+${jsonSerializableCombinedText}
 ${classNameLine}
 ${variables}
 
