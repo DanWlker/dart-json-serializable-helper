@@ -12,6 +12,7 @@ import {
   isBlank,
   readSetting,
   removeEnd,
+  removeStart,
 } from "./utils";
 
 export class DataClassGenerator {
@@ -1182,7 +1183,4 @@ export class DataClassGenerator {
 
     return words;
   }
-}
-function removeStart(oldConstr: string, arg1: string[]): string {
-  throw new Error("Function not implemented.");
 }

@@ -196,7 +196,7 @@ export function count(source: string, match: string) {
   return count;
 }
 
-function removeStart(source: string, start: string | any[]) {
+export function removeStart(source: string, start: string | any[]) {
   if (Array.isArray(start)) {
     let result = source.trim();
     for (let s of start) {

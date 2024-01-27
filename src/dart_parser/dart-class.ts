@@ -1,6 +1,13 @@
 import { ClassField } from "./class-field";
 import { ClassPart } from "./class-part";
-import { removeEnd } from "./utils";
+import {
+  areStrictEqual,
+  indent,
+  isBlank,
+  readSetting,
+  removeEnd,
+  removeStart,
+} from "./utils";
 
 export class DartClass {
   name: string | null;
@@ -286,5 +293,230 @@ export class DartClass {
     }
 
     return removeEnd(replacement, "\n");
+  }
+
+  getConstructor() {
+    if (this.constr !== null) {
+      return this.constr;
+    }
+
+    return this.generateConstructor();
+  }
+
+  generateConstructor() {
+    const withDefaults = readSetting("constructor.default_values");
+
+    let constr = "";
+    let startBracket = "({";
+    let endBracket = "})";
+
+    if (this.constr !== null) {
+      if (this.constr.trimLeft().startsWith("const")) {
+        constr += "const ";
+      }
+
+      // Detect custom constructor brackets and preserve them.
+      const fConstr = this.constr.replace("const", "").trimLeft();
+
+      if (fConstr.startsWith(this.name + "([")) {
+        startBracket = "([";
+      } else if (fConstr.startsWith(this.name + "({")) {
+        startBracket = "({";
+      } else {
+        startBracket = "(";
+      }
+
+      if (fConstr.includes("])")) {
+        endBracket = "])";
+      } else if (fConstr.includes("})")) {
+        endBracket = "})";
+      } else {
+        endBracket = ")";
+      }
+    } else {
+      if (
+        this.isWidget
+        // ||((this.usesEquatable || readSetting("useEquatable")) &&
+        //   this.isPartSelected("useEquatable"))
+      ) {
+        constr += "const ";
+      }
+    }
+
+    constr += this.name + startBracket + "\n";
+
+    // Add 'Key key,' for widgets in constructor.
+    if (this.isWidget) {
+      let hasKey = false;
+      let thisConstr = this.constr || "";
+      for (let line of thisConstr.split("\n")) {
+        if (line.trim().startsWith("Key? key")) {
+          hasKey = true;
+          break;
+        }
+      }
+
+      if (!hasKey) {
+        constr += "  Key? key,\n";
+      }
+    }
+
+    const oldProperties = this.findOldConstrProperties();
+    for (let prop of oldProperties) {
+      if (!prop.isThis) {
+        constr += "  " + prop.text;
+      }
+    }
+
+    for (let prop of this.properties) {
+      const oldProperty = this.findConstrParameter(prop, oldProperties);
+      if (oldProperty !== null) {
+        if (oldProperty.isThis) {
+          constr += "  " + oldProperty.text;
+        }
+
+        continue;
+      }
+
+      const parameter = `this.${prop.name}`;
+
+      constr += "  ";
+
+      if (!prop.isNullable) {
+        const hasDefault =
+          withDefaults &&
+          (prop.isPrimitive || prop.isCollection) &&
+          prop.rawType !== "dynamic";
+        const isNamedConstr = startBracket === "({" && endBracket === "})";
+
+        if (hasDefault) {
+          constr += `${parameter} = ${prop.defValue},\n`;
+        } else if (isNamedConstr) {
+          constr += `required ${parameter},\n`;
+        } else {
+          constr += `${parameter},\n`;
+        }
+      } else {
+        constr += `${parameter},\n`;
+      }
+    }
+
+    const stdConstrEnd = () => {
+      constr += endBracket + (this.isWidget ? " : super(key: key);" : ";");
+    };
+
+    if (this.constr !== null) {
+      let i = null;
+      if (this.constr.includes(" : ")) {
+        i = this.constr.indexOf(" : ") + 1;
+      } else if (this.constr.trimRight().endsWith("{")) {
+        i = this.constr.lastIndexOf("{");
+      }
+
+      if (i !== null) {
+        let ending = this.constr.substring(i, this.constr.length);
+        constr += `${endBracket} ${ending}`;
+      } else {
+        stdConstrEnd();
+      }
+    } else {
+      stdConstrEnd();
+    }
+
+    this.constrDifferent = true;
+    return constr;
+  }
+
+  findOldConstrProperties() {
+    if (
+      !this.hasConstructor ||
+      this.constrStartsAtLine === this.constrEndsAtLine
+    ) {
+      return [];
+    }
+
+    let oldConstr = "";
+    let brackets = 0;
+    let didFindConstr = false;
+    const thisConstr = this.constr;
+    if (thisConstr === null) {
+      console.log("thisConstr is null for DartClassGenerator");
+      throw Error("thisConstr is null for DartClassGenerator");
+    }
+    for (let c of thisConstr) {
+      if (c === "(") {
+        if (didFindConstr) {
+          oldConstr += c;
+        }
+        brackets++;
+        didFindConstr = true;
+        continue;
+      } else if (c === ")") {
+        brackets--;
+        if (didFindConstr && brackets === 0) {
+          break;
+        }
+      }
+
+      if (brackets >= 1) {
+        oldConstr += c;
+      }
+    }
+
+    oldConstr = removeStart(oldConstr, ["{", "["]);
+    oldConstr = removeEnd(oldConstr, ["}", "]"]);
+
+    let oldArguments = oldConstr.split("\n");
+    const oldProperties = [];
+    for (let arg of oldArguments) {
+      let formatted = arg.replace("required", "").trim();
+      if (formatted.indexOf("=") !== -1) {
+        formatted = formatted.substring(0, formatted.indexOf("=")).trim();
+      }
+
+      let name = null;
+      let isThis = false;
+      if (formatted.startsWith("this.")) {
+        name = formatted.replace("this.", "");
+        isThis = true;
+      } else {
+        const words = formatted.split(" ");
+        if (words.length >= 1) {
+          const w = words[1];
+          if (!isBlank(w)) {
+            name = w;
+          }
+        }
+      }
+
+      if (name !== null) {
+        oldProperties.push({
+          name: removeEnd(name.trim(), ","),
+          text: arg.trim() + "\n",
+          isThis: isThis,
+        });
+      }
+    }
+
+    return oldProperties;
+  }
+
+  /**
+   * If class already exists and has a constructor with the parameter, reuse that parameter.
+   * E.g. when the dev changed the parameter from this.x to this.x = y the generator inserts
+   * this.x = y. This way the generator can preserve changes made in the constructor.
+   */
+  findConstrParameter(
+    prop: ClassField | string,
+    oldProps: { name: string; text: string; isThis: boolean }[]
+  ) {
+    const name = typeof prop === "string" ? prop : prop.name;
+    for (let oldProp of oldProps) {
+      if (name === oldProp.name) {
+        return oldProp;
+      }
+    }
+
+    return null;
   }
 }

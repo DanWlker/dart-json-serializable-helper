@@ -130,6 +130,7 @@ ${jsonSerializableHeaderNotation}`;
   let variables = removeEnd(firstDartClass.propertiesStringList.join(""), "\n");
 
   // constructor
+  let constructor = firstDartClass.getConstructor();
 
   // Generate the class declaration and constructor snippet
   // prettier-ignore
@@ -138,6 +139,8 @@ ${imports}
 ${jsonSerializableCombinedText}
 ${classNameLine}
 ${variables}
+
+${constructor}
 
 \tfactory ${className}.fromJson(Map<String, dynamic> json) =>
 \t\t\t_$${className}FromJson(json);
