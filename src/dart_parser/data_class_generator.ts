@@ -1070,6 +1070,8 @@ export class DataClassGenerator {
             let isFinal = false;
             let isConst = false;
 
+            clazz.propertiesStringList.push(line);
+
             const words = line.trim().split(" ");
             for (let i = 0; i < words.length; i++) {
               const word = words[i];

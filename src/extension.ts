@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { findProjectName } from "./dart_parser/utils";
+import { findProjectName, removeEnd } from "./dart_parser/utils";
 import { DataClassGenerator } from "./dart_parser/data_class_generator";
 import { DartClass } from "./dart_parser/dart-class";
+import { Imports } from "./dart_parser/imports";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("dart-json-serializable-helper is now active!");
@@ -19,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       "dartJsonSerializableHelper.quickFixJsonSerializable",
       (document, range) => {
-        quickFixJsonSerializable(document, range);
+        quickFixJsonSerializableDataClassVer(document, range);
       }
     )
   );
@@ -31,13 +32,15 @@ class QuickFixJsonSerializableProvider implements vscode.CodeActionProvider {
   getClass(generator: DataClassGenerator, lineNumber: number) {
     for (let clazz of generator.clazzes) {
       let startsAtLine = clazz.startsAtLine;
-      let endsAtLine = clazz.endsAtLine;
+      // let endsAtLine = clazz.endsAtLine;
 
-      if (startsAtLine === null || endsAtLine === null) {
+      if (startsAtLine === null) {
+        //|| endsAtLine === null) {
         continue;
       }
 
-      if (startsAtLine <= lineNumber && endsAtLine >= lineNumber) {
+      if (startsAtLine === lineNumber) {
+        // && endsAtLine >= lineNumber) {
         return clazz;
       }
     }
@@ -91,12 +94,59 @@ class QuickFixJsonSerializableProvider implements vscode.CodeActionProvider {
   }
 }
 
+function quickFixJsonSerializableDataClassVer(
+  document: vscode.TextDocument,
+  range: vscode.Range
+) {
+  // Constant stuff that we will definitely need
+  const fileUri = document.uri;
+  const fileName = path.basename(fileUri.fsPath, path.extname(fileUri.fsPath));
+  let jsonSerializableHeaderImport =
+    "import 'package:json_annotation/json_annotation.dart';";
+  let jsonSerializableHeaderPart = `part '${fileName}.g.dart';`;
+  let jsonSerializableHeaderNotation = "@JsonSerializable()";
+
+  // Start using class generator
+  let generator = new DataClassGenerator(document.getText());
+  let firstDartClass = generator.clazzes[0];
+
+  // imports
+  let imports = removeEnd(generator.imports.formatted, "\n");
+
+  // whole class line
+  let classNameLine = removeEnd(firstDartClass.getClassNameLine(), "\n");
+
+  // class name
+  let className = firstDartClass.name;
+
+  // variables
+  let variables = removeEnd(
+    firstDartClass.propertiesStringList.join("\n"),
+    "\n"
+  );
+
+  // Generate the class declaration and constructor snippet
+  // prettier-ignore
+  const finalText = `\
+${imports}
+
+${classNameLine}
+${variables}
+
+\tfactory ${className}.fromJson(Map<String, dynamic> json) =>
+\t\t\t_$${className}FromJson(json);
+\tMap<String, dynamic> toJson() => _$${className}ToJson(this);
+}
+	`;
+
+  // Create a new TextEdit to replace the entire document content
+  overwriteDocument(document, finalText);
+}
+
 function quickFixJsonSerializable(
   document: vscode.TextDocument,
   range: vscode.Range
 ) {
-  const edit = new vscode.WorkspaceEdit();
-
   // Get the current line where the cursor is positioned
   const lineIndex = range.start.line;
   const lineText = document.lineAt(lineIndex).text;
@@ -161,7 +211,7 @@ class ${className} {${variableSection.length === 0 ? "" : "\n"}${variableSection
 	`;
 
     // Create a new TextEdit to replace the entire document content
-    overwriteDocument(document, edit, classSnippet);
+    overwriteDocument(document, classSnippet);
   }
 }
 
@@ -175,11 +225,8 @@ function getVariableMatchesFromClass(text: string) {
   return matches;
 }
 
-function overwriteDocument(
-  document: vscode.TextDocument,
-  edit: vscode.WorkspaceEdit,
-  newString: string
-) {
+function overwriteDocument(document: vscode.TextDocument, newString: string) {
+  let edit = new vscode.WorkspaceEdit();
   const wholeDocument = new vscode.Range(
     document.positionAt(0),
     document.positionAt(document.getText().length)

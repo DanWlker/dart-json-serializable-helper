@@ -10,6 +10,7 @@ export class DartClass {
   mixins: string[];
   constr: string | null;
   properties: ClassField[];
+  propertiesStringList: String[];
   startsAtLine: number | null;
   endsAtLine: number | null;
   constrStartsAtLine: number | null;
@@ -29,6 +30,7 @@ export class DartClass {
     this.mixins = [];
     this.constr = null;
     this.properties = [];
+    this.propertiesStringList = [];
     this.startsAtLine = null;
     this.endsAtLine = null;
     this.constrStartsAtLine = null;
@@ -209,6 +211,38 @@ export class DartClass {
     return null;
   }
 
+  getClassNameLine() {
+    const classType = this.isAbstract ? "abstract class" : "class";
+    let classDeclaration = classType + " " + this.name + this.fullGenericType;
+    if (this.superclass !== null) {
+      classDeclaration += " extends " + this.superclass;
+    }
+
+    function addSuperTypes(list: string[], keyword: string) {
+      if (list.length === 0) {
+        return;
+      }
+
+      const length = list.length;
+      classDeclaration += ` ${keyword} `;
+      for (let x = 0; x < length; x++) {
+        const isLast = x === length - 1;
+        const type = list[x];
+        classDeclaration += type;
+
+        if (!isLast) {
+          classDeclaration += ", ";
+        }
+      }
+    }
+
+    addSuperTypes(this.mixins, "with");
+    addSuperTypes(this.interfaces, "implements");
+
+    classDeclaration += " {\n";
+    return classDeclaration;
+  }
+
   generateClassReplacement() {
     let replacement = "";
     let lines = this.classContent.split("\n");
@@ -227,35 +261,7 @@ export class DartClass {
       let l = this.startsAtLine + i;
 
       if (i === 0) {
-        const classType = this.isAbstract ? "abstract class" : "class";
-        let classDeclaration =
-          classType + " " + this.name + this.fullGenericType;
-        if (this.superclass !== null) {
-          classDeclaration += " extends " + this.superclass;
-        }
-
-        function addSuperTypes(list: string[], keyword: string) {
-          if (list.length === 0) {
-            return;
-          }
-
-          const length = list.length;
-          classDeclaration += ` ${keyword} `;
-          for (let x = 0; x < length; x++) {
-            const isLast = x === length - 1;
-            const type = list[x];
-            classDeclaration += type;
-
-            if (!isLast) {
-              classDeclaration += ", ";
-            }
-          }
-        }
-
-        addSuperTypes(this.mixins, "with");
-        addSuperTypes(this.interfaces, "implements");
-
-        classDeclaration += " {\n";
+        let classDeclaration = this.getClassNameLine();
         replacement = classDeclaration + replacement;
       } else if (
         l === this.propsEndAtLine &&
