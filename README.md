@@ -6,6 +6,8 @@ To help generate @JsonSerializable classes
 
 [VsCode Flutter Helper](https://github.com/aksharpatel47/vscode_flutter_helper)
 
+[Dart-Data-Class-Generator](https://github.com/huang12zheng/Dart-Data-Class-Generator)
+
 ## Features
 
 ### Snippet to generate @JsonSerializable class `jsi`
