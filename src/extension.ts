@@ -131,6 +131,14 @@ ${jsonSerializableHeaderNotation}`;
 
   // constructor
   let constructor = firstDartClass.getConstructor();
+  if (!/^\s/.test(constructor)) {
+    let constructorArray = constructor.split(/\n/);
+    var newConstructorArray: string[] = [];
+    constructorArray.forEach(function (element) {
+      newConstructorArray.push("\t" + element);
+    });
+    constructor = newConstructorArray.join("\n");
+  }
 
   // Generate the class declaration and constructor snippet
   // prettier-ignore
